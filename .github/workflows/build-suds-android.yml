@@ -1,4 +1,4 @@
-name: Build and Publish SUDS PRO v1.2.20 APK
+name: Build and Publish SUDS PRO v1.2.21 APK
 
 on:
   push:
@@ -22,13 +22,19 @@ jobs:
         run: |
           set -euo pipefail
           test "$(find suds_pro_source_parts -maxdepth 1 -type f -name 'part-*.bin' | wc -l)" -eq 24
-          cat suds_pro_source_parts/part-*.bin > SUDS_PRO_v1.2.20_source.zip
-          echo "be6090ca30f3b1f8c605bb43c1dc0d770acd3adfddd355c61847fcc3baf897dd  SUDS_PRO_v1.2.20_source.zip" | sha256sum -c -
-          unzip -tq SUDS_PRO_v1.2.20_source.zip
-          mkdir -p suds_pro_v1220
-          unzip -q SUDS_PRO_v1.2.20_source.zip -d suds_pro_v1220
-          test -f suds_pro_v1220/app/src/main/assets/app.js
-          test "$(find suds_pro_v1220/app/src/main/assets/ads -name 'SUDS_APPROVED_*.png' | wc -l)" -eq 13
+          cat suds_pro_source_parts/part-*.bin > SUDS_PRO_v1.2.21_source.zip
+          echo "be6090ca30f3b1f8c605bb43c1dc0d770acd3adfddd355c61847fcc3baf897dd  SUDS_PRO_v1.2.21_source.zip" | sha256sum -c -
+          unzip -tq SUDS_PRO_v1.2.21_source.zip
+          mkdir -p suds_pro_v1221
+          unzip -q SUDS_PRO_v1.2.21_source.zip -d suds_pro_v1221
+          test -f suds_pro_v1221/app/src/main/assets/app.js
+          test "$(find suds_pro_v1221/app/src/main/assets/ads -name 'SUDS_APPROVED_*.png' | wc -l)" -eq 13
+
+      - name: Apply verified visual and cleaning corrections
+        shell: bash
+        run: |
+          python3 -m pip install --quiet pillow numpy
+          python3 build-tools/patch_v1221.py suds_pro_v1221
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -52,19 +58,19 @@ jobs:
           gradle-version: '8.11.1'
 
       - name: Compile clean Android APK (no old binaries)
-        working-directory: suds_pro_v1220
+        working-directory: suds_pro_v1221
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
       - name: Verify built APK exists
         run: |
-          test -s suds_pro_v1220/app/build/outputs/apk/debug/app-debug.apk
-          unzip -tq suds_pro_v1220/app/build/outputs/apk/debug/app-debug.apk
+          test -s suds_pro_v1221/app/build/outputs/apk/debug/app-debug.apk
+          unzip -tq suds_pro_v1221/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload new installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: SUDS-PRO-v1.2.20-FRESH-ANDROID-APK
-          path: suds_pro_v1220/app/build/outputs/apk/debug/app-debug.apk
+          name: SUDS-PRO-v1.2.21-FRESH-ANDROID-APK
+          path: suds_pro_v1221/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
       - name: Publish APK to public GitHub Releases
@@ -74,10 +80,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp suds_pro_v1220/app/build/outputs/apk/debug/app-debug.apk SUDS-PRO-v1.2.20.apk
-          sha256sum SUDS-PRO-v1.2.20.apk > SUDS-PRO-v1.2.20.sha256
-          if gh release view v1.2.20 >/dev/null 2>&1; then
-            gh release upload v1.2.20 SUDS-PRO-v1.2.20.apk SUDS-PRO-v1.2.20.sha256 --clobber
+          cp suds_pro_v1221/app/build/outputs/apk/debug/app-debug.apk SUDS-PRO-v1.2.21.apk
+          sha256sum SUDS-PRO-v1.2.21.apk > SUDS-PRO-v1.2.21.sha256
+          if gh release view v1.2.21 >/dev/null 2>&1; then
+            gh release upload v1.2.21 SUDS-PRO-v1.2.21.apk SUDS-PRO-v1.2.21.sha256 --clobber
           else
-            gh release create v1.2.20 SUDS-PRO-v1.2.20.apk SUDS-PRO-v1.2.20.sha256 --title "SUDS PRO v1.2.20 Android" --notes "Official GitHub Android test build. Physical-device functionality and video export remain unverified."
+            gh release create v1.2.21 SUDS-PRO-v1.2.21.apk SUDS-PRO-v1.2.21.sha256 --title "SUDS PRO v1.2.21 Android" --notes "Official GitHub Android test build. Physical-device functionality and video export remain unverified."
           fi
